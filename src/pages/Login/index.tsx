@@ -1,35 +1,61 @@
 import { BackgroundLines } from "@/components/ui/background-lines";
 import { WobbleCard } from "@/components/ui/wobble-card";
 import { IconBrandGoogle } from "@tabler/icons-react";
+import axios from "axios";
 import { Github } from "lucide-react";
 import { AwesomeButton } from "react-awesome-button";
 import "react-awesome-button/dist/styles.css";
 
 const Login = () => {
+  const handleGithubLogin = () => {
+    const popup = window.open(
+      `https://github.com/login/oauth/authorize?client_id=${
+        import.meta.env.VITE_CLIENT_ID
+      }&redirect_uri=${
+        import.meta.env.VITE_CALLBACK_URL
+      }&scope=read:user user:email`,
+      "github-login",
+      "width=600,height=700"
+    );
+
+    const receiveMessage = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+
+      const { code } = event.data;
+
+      if (code) {
+        try {
+          // Exchange code for access token via backend
+          console.log("code", code);
+          const response = await axios.post(
+            "http://localhost:8000/github/token",
+            { code }
+          );
+
+          console.log("resp", response.data);
+        } catch (error) {
+          console.error("Error during token fetch:", error);
+        }
+      }
+
+      // Cleanup listener and close the popup
+      window.removeEventListener("message", receiveMessage);
+      if (popup) popup.close();
+    };
+
+    window.addEventListener("message", receiveMessage);
+  };
   return (
     <div className="">
       <BackgroundLines className="flex w-full justify-center items-center px-4">
-        {/* Header section */}
-        {/* <div className="flex h-full w-[50%] items-center justify-center">
-          <div className="flex flex-col px-16 gap-2">
-            <h1 className="text-[50px] font-bold bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 bg-clip-text text-transparent">
-              RealmRovers
-            </h1>
-            <p
-              style={{ fontWeight: 700 }}
-              className="text-xl text-purple-400"
-            >
-              Build Your World, Invite Friends, and Explore Infinite
-              Possibilities
-            </p>
-          </div>
-        </div> */}
-        {/* Login Card */}
-        <div className="h-full w-[50%] flex items-center justify-center">
+        <div className="h-full lg:w-[50%] md:w-[80%] sm:w-full w-[90%] flex items-center justify-center">
           <WobbleCard containerClassName="flex flex-col mx-20">
-            <h2 className="max-w-80 text-center text-balance text-base md:text-xl lg:text-3xl font-semibold tracking-[-0.015em] text-white">
+            <div className="w-full flex items-center justify-center" >
+            <h2 className="max-w-80 text-center text-balance text-base md:text-2xl lg:text-3xl font-semibold tracking-[-0.015em] text-white">
               Sign in and dive into the RealmRovers
             </h2>
+            </div>
+            
             <div className="flex flex-col gap-4 p-8">
               <AwesomeButton type="secondary">
                 <div className="flex items-center gap-2">
@@ -37,7 +63,7 @@ const Login = () => {
                   <div>Sign in with Google</div>
                 </div>
               </AwesomeButton>
-              <AwesomeButton type="secondary">
+              <AwesomeButton onPress={handleGithubLogin} type="secondary">
                 <div className="flex items-center gap-2">
                   <Github />
                   <div>Sign in with GitHub</div>
