@@ -20,13 +20,9 @@ const Login = () => {
 
     const receiveMessage = async (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
-
       const { code } = event.data;
-
       if (code) {
         try {
-          // Exchange code for access token via backend
-          console.log("code", code);
           const response = await axios.post(
             "http://localhost:8000/github/token",
             { code }
@@ -38,7 +34,6 @@ const Login = () => {
         }
       }
 
-      // Cleanup listener and close the popup
       window.removeEventListener("message", receiveMessage);
       if (popup) popup.close();
     };
@@ -50,12 +45,12 @@ const Login = () => {
       <BackgroundLines className="flex w-full justify-center items-center px-4">
         <div className="h-full lg:w-[50%] md:w-[80%] sm:w-full w-[90%] flex items-center justify-center">
           <WobbleCard containerClassName="flex flex-col mx-20">
-            <div className="w-full flex items-center justify-center" >
-            <h2 className="max-w-80 text-center text-balance text-base md:text-2xl lg:text-3xl font-semibold tracking-[-0.015em] text-white">
-              Sign in and dive into the RealmRovers
-            </h2>
+            <div className="w-full flex items-center justify-center">
+              <h2 className="max-w-80 text-center text-balance text-base md:text-2xl lg:text-3xl font-semibold tracking-[-0.015em] text-white">
+                Sign in and dive into the RealmRovers
+              </h2>
             </div>
-            
+
             <div className="flex flex-col gap-4 p-8">
               <AwesomeButton type="secondary">
                 <div className="flex items-center gap-2">
