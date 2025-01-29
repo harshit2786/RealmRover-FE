@@ -30,7 +30,7 @@ const Map: React.FC = () => {
     };
   }, []);
 
-  return <div className="w-full h-full" id="phaser-game" />;
+  return <div className="w-full h-full overflow-x-hidden overflow-hidden" id="phaser-game" />;
 };
 
 export default Map;
