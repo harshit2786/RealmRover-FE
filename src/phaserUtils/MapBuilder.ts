@@ -1,31 +1,30 @@
+import { ElementReceived, MapElement, Mode } from '@/model/model';
 import Phaser from 'phaser';
-interface MapElement {
-    id: string;
-    x: number;
-    y: number;
-    order: number,
-    h: number,
-    w: number,
-    ref: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite
-}
-type Mode = "pan" | "delete" | "block" | "picker";
+
 export default class MapEditorScene extends Phaser.Scene {
     private gridGraphics!: Phaser.GameObjects.Graphics;
     private mapElements: MapElement[] = [];
     private gridSize: number = 32; // Size of each grid cell
-    private gridWidth: number = 60; // Fixed number of horizontal grids
-    private gridHeight: number = 30; // Fixed number of vertical grids
+    private gridWidth: number // Fixed number of horizontal grids
+    private gridHeight: number // Fixed number of vertical grids
     private selectedElement: Phaser.GameObjects.Image | null = null;
     private isDraggingMap: boolean = false;
-    private mode: Mode = "pan";
+    private mode: Mode
+    private prev : ElementReceived[]
+    private setElements: (e: MapElement[]) => void
     private offset: number = 2;
     private dragStartX: number = 0;
     private dragStartY: number = 0;
     private panelHeight: number = this.offset * 100; // Height of the top panel
-    private restrictedArea: number = 3;
+    private restrictedArea: number = 4;
 
-    constructor() {
+    constructor(config: { mode: Mode, setElements: (e: MapElement[]) => void, widthNum: number, heightNum: number, prev : ElementReceived[] }) {
         super({ key: 'MapEditorScene' });
+        this.mode = config.mode
+        this.setElements = config.setElements
+        this.gridWidth = config.widthNum + this.restrictedArea
+        this.gridHeight = config.heightNum + this.restrictedArea
+        this.prev = config.prev
     }
 
     preload() {
@@ -77,17 +76,47 @@ export default class MapEditorScene extends Phaser.Scene {
     create() {
         // Draw the top panel
         this.drawPanel();
-
         // Draw the grid
-        this.drawGrid();
 
+
+        this.drawGrid();
         // Enable map panning
         this.setupMapPanning();
 
         // Add draggable elements to the panel
         this.addPanelElements();
+        this.updateEveryElement();
+
     }
 
+    public updateMode(e: Mode) {
+        this.mode = e
+    }
+
+    private updateEveryElement() {
+        this.load.on('complete', () => console.log("loading complete"))
+        this.prev.forEach((a) => {
+            const x = this.gridSize * a.x;
+            const y = (this.gridSize * a.y) + this.panelHeight;
+            let ref;
+            if (a.animate && a.frames) {
+                ref = this.playSprite(x, y, a.frames, a.id, a.order)
+
+            } else {
+                ref = this.add.image(x, y, a.id).setOrigin(0, 0);
+            }
+            this.mapElements.push({
+                id: a.id, // Use the texture key as the ID
+                x: a.x, // Convert to grid coordinates
+                y: a.y, // Adjust for panel height
+                order: a.order,
+                h: a.h,
+                w: a.w,
+                ref
+            });
+        });
+        this.setElements(this.mapElements)
+    }
     private drawPanel() {
         // Draw a background for the panel
         const panel = this.add.rectangle(
@@ -95,12 +124,9 @@ export default class MapEditorScene extends Phaser.Scene {
             this.panelHeight / 2,
             this.cameras.main.width,
             this.panelHeight,
-            0x2c3e50
+            0xfbe4ff
         ).setOrigin(0.5, 0.5);
-
-        // Make the panel fixed (not affected by camera scroll)
         panel.setScrollFactor(0);
-
         panel.setDepth(100);
     }
 
@@ -296,7 +322,7 @@ export default class MapEditorScene extends Phaser.Scene {
                 const finalY = (snappedY - this.panelHeight) / this.gridSize
                 // Add the new element to the map
                 let ref;
-                const len = this.mapElements.length;
+                const len = Date.now();
                 const { h, w } = gameObject.data.values;
 
                 // Create a new object in the map at the snapped position
@@ -317,7 +343,7 @@ export default class MapEditorScene extends Phaser.Scene {
                     w: Number(w),
                     ref
                 });
-                // console.log("elements", this.mapElements);
+                this.setElements(this.mapElements)
             }
 
             // Reset the panel element to its original position
@@ -331,22 +357,34 @@ export default class MapEditorScene extends Phaser.Scene {
 
         for (let x = 0; x <= this.gridWidth * this.gridSize; x += this.gridSize) {
             // Set different color for the first 3 and last 3 vertical lines
-            if (x <= this.restrictedArea * this.gridSize || x >= (this.gridWidth - this.restrictedArea) * this.gridSize) {
-                this.gridGraphics.lineStyle(1, 0xFFA500); // Orange color
+            if (x < this.restrictedArea * this.gridSize || x > (this.gridWidth - this.restrictedArea) * this.gridSize) {
+                this.gridGraphics.lineStyle(1.5, 0x6366f1); // Orange color
+                this.gridGraphics.strokeLineShape(new Phaser.Geom.Line(x, this.panelHeight, x, this.panelHeight + this.gridHeight * this.gridSize));
             } else {
-                this.gridGraphics.lineStyle(1, 0xffffff); // Default black color
+                this.gridGraphics.lineStyle(1.5, 0x6366f1); // Orange color
+                this.gridGraphics.strokeLineShape(new Phaser.Geom.Line(x, this.panelHeight, x, this.panelHeight + this.restrictedArea * this.gridSize));
+                this.gridGraphics.lineStyle(1, 0x000000); // Default black color
+                this.gridGraphics.strokeLineShape(new Phaser.Geom.Line(x, this.panelHeight + this.restrictedArea * this.gridSize, x, this.panelHeight + (this.gridHeight - this.restrictedArea) * this.gridSize));
+                this.gridGraphics.lineStyle(1.5, 0x6366f1); // Orange color
+                this.gridGraphics.strokeLineShape(new Phaser.Geom.Line(x, this.panelHeight + (this.gridHeight - this.restrictedArea) * this.gridSize, x, this.panelHeight + this.gridHeight * this.gridSize));
             }
-            this.gridGraphics.strokeLineShape(new Phaser.Geom.Line(x, this.panelHeight, x, this.panelHeight + this.gridHeight * this.gridSize));
         }
 
         for (let y = this.panelHeight; y <= this.panelHeight + this.gridHeight * this.gridSize; y += this.gridSize) {
             // Set different color for the top and bottom 3 horizontal lines
-            if (y <= this.panelHeight + this.restrictedArea * this.gridSize || y >= this.panelHeight + (this.gridHeight - this.restrictedArea) * this.gridSize) {
-                this.gridGraphics.lineStyle(1, 0xFFA500); // Orange color
+            if (y < this.panelHeight + this.restrictedArea * this.gridSize || y > this.panelHeight + (this.gridHeight - this.restrictedArea) * this.gridSize) {
+                this.gridGraphics.lineStyle(1.5, 0x6366f1); // Orange color
+                this.gridGraphics.strokeLineShape(new Phaser.Geom.Line(0, y, this.gridWidth * this.gridSize, y));
             } else {
-                this.gridGraphics.lineStyle(1, 0xffffff); // Default black color
+                this.gridGraphics.lineStyle(1.5, 0x6366f1); // Orange color
+                this.gridGraphics.strokeLineShape(new Phaser.Geom.Line(0, y, this.restrictedArea * this.gridSize, y));
+
+                this.gridGraphics.lineStyle(1, 0x000000); // Default black color
+                this.gridGraphics.strokeLineShape(new Phaser.Geom.Line(this.restrictedArea * this.gridSize, y, (this.gridWidth - this.restrictedArea) * this.gridSize, y));
+
+                this.gridGraphics.lineStyle(1.5, 0x6366f1); // Orange color
+                this.gridGraphics.strokeLineShape(new Phaser.Geom.Line((this.gridWidth - this.restrictedArea) * this.gridSize, y, this.gridWidth * this.gridSize, y));
             }
-            this.gridGraphics.strokeLineShape(new Phaser.Geom.Line(0, y, this.gridWidth * this.gridSize, y));
         }
     }
 
@@ -361,7 +399,7 @@ export default class MapEditorScene extends Phaser.Scene {
                     this.isDraggingMap = true;
                     this.dragStartX = X;
                     this.dragStartY = Y;
-                } else  if (this.mode === "delete") {
+                } else if (this.mode === "delete") {
                     const XCord = Math.floor(X / this.gridSize);
                     const YCord = Math.floor((Y - this.panelHeight) / this.gridSize);
                     let order = -1;
@@ -380,9 +418,9 @@ export default class MapEditorScene extends Phaser.Scene {
                     if (deleteElement.length > 0) {
                         const { id, order } = deleteElement[deleteElement.length - 1];
                         this.mapElements = this.mapElements.filter((a) => !(a.id === id && a.order === order))
+                        this.setElements(this.mapElements)
                         deleteElement[deleteElement.length - 1].ref.destroy();
                     }
-                    console.log("ele", this.mapElements);
                 }
             }
         });
@@ -400,26 +438,19 @@ export default class MapEditorScene extends Phaser.Scene {
     }
 
     private playSprite(x: number, y: number, framesLen: number, key: string, order: number) {
-        // Create a sprite at position (100, 100)
         const sprite = this.add.sprite(x, y, `${key}1`);
         sprite.setOrigin(0, 0)
-        sprite.setScrollFactor(0);
-        sprite.setDepth(101);
-        // Define the animation frames
         const frames = [];
         for (let i = 1; i <= framesLen; i++) {
             frames.push({ key: `${key}${i}` });
         }
-
-        // Create an animation from the frames
         this.anims.create({
-            key: `${key}_${order}`, // Unique key for the animation
-            frames: frames, // Array of frames
-            frameRate: 10, // Frames per second
-            repeat: -1, // Loop indefinitely
+            key: `${key}_${order}`,
+            frames: frames,
+            frameRate: 10,
+            repeat: -1,
         });
 
-        // Play the animation on the sprite
         sprite.play(`${key}_${order}`);
         return sprite;
     }
