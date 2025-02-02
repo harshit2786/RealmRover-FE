@@ -19,3 +19,20 @@ export interface ElementReceived {
     w: number,
     frames?: number
 }
+
+export type AssetGroup = "building" | "nature" | "interior" | "animated"
+
+export interface StaticAsset {
+    key : string,
+    h : number,
+    w : number
+}
+
+export interface AnimatedAsset extends StaticAsset {
+    frames : number
+}
+
+export interface BlockedCoordinates {
+    x : number,
+    y : number
+}

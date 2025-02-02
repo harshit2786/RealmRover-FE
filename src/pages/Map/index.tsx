@@ -1,9 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
 import Phaser from "phaser";
 import MapEditorScene from "@/phaserUtils/MapBuilder";
-import { Hand, Pipette, Trash2, Square } from "lucide-react";
+import {
+  Hand,
+  Pipette,
+  Trash2,
+  Square,
+  Clapperboard,
+  Sofa,
+  Building2,
+  ChevronRight,
+  ChevronLeft,
+  TreesIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ElementReceived, MapElement, Mode } from "@/model/model";
+import { AssetGroup, BlockedCoordinates, ElementReceived, MapElement, Mode } from "@/model/model";
+import { AnimatedAssets, BuildingAssets, InteriorAssets, NatureAssets } from "@/lib/assetCollection";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const preVVV: ElementReceived[] = [
   {
@@ -67,8 +80,18 @@ const Map: React.FC = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
   const sceneRef = useRef<MapEditorScene | null>(null); // Ref to store the scene instance
   const [mode, setMode] = useState<Mode>("pan");
+  const [category, setCategory] = useState<AssetGroup>("building");
+  const [isCollapsed, setIsCollapsed] = useState(false)
   const [elements, setElements] = useState<MapElement[]>([]);
-//   const [prevElements, setPrevElements] = useState<ElementReceived[]>(preVVV);
+  const [blocked,setBlocked] = useState<BlockedCoordinates[]>([]);
+  const categories = [
+    { id: "building", icon: Building2, label: "Buildings", color: "bg-indigo-500" },
+    { id: "interior", icon: Sofa, label: "House Interior", color: "bg-purple-500" },
+    { id: "nature", icon: TreesIcon, label: "Nature", color: "bg-pink-500" },
+    { id: "animated", icon: Clapperboard, label: "Animated", color: "bg-indigo-500" },
+  ]
+  //   const [prevElements, setPrevElements] = useState<ElementReceived[]>(preVVV);
+  console.log(elements)
   useEffect(() => {
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
@@ -77,7 +100,19 @@ const Map: React.FC = () => {
       height: window.innerHeight,
       parent: "phaser-game",
       scene: [
-        new MapEditorScene({ mode, setElements, heightNum: 20, widthNum: 40 , prev : preVVV }),
+        new MapEditorScene({
+          mode,
+          setElements,
+          heightNum: 20,
+          widthNum: 40,
+          prev: preVVV,
+          buildingAssets : BuildingAssets,
+          interiorAssets : InteriorAssets,
+          natureAssets : NatureAssets,
+          animatedAssets : AnimatedAssets,
+          blocked,
+          setBlocked
+        }),
       ], // Pass the class reference, NOT an instance
     };
 
@@ -115,7 +150,17 @@ const Map: React.FC = () => {
       sceneRef.current.updateMode(mode);
     }
   }, [mode]);
-
+  useEffect(() => {
+    if (sceneRef.current) {
+      sceneRef.current.addPanelElements(category);
+    }
+  }, [category]);
+  useEffect(() => {
+    if (sceneRef.current) {
+      sceneRef.current.hidePanel(!isCollapsed);
+      console.log("ccc",category)
+    }
+  },[isCollapsed])
   return (
     <div className="w-full h-full relative">
       <div
@@ -159,7 +204,6 @@ const Map: React.FC = () => {
           </Button>
           <Button
             onClick={() => {
-              console.log("elements----->", elements);
               setMode("block");
             }}
             className={`w-6 h-6 rounded-full ${
@@ -172,6 +216,55 @@ const Map: React.FC = () => {
             <Square className="w-4 h-4" />
           </Button>
         </div>
+      </div>
+      <div>
+      <TooltipProvider>
+      <div
+        className={`absolute w-10 rounded-xl flex flex-col items-center justify-between bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 top-0 left-2 shadow-lg p-0.5 transition-all duration-300 ease-in-out ${
+          isCollapsed ? "h-10 rounded-full" : "h-[200px]"
+        }`}
+      >
+        <div
+          className={`w-full h-full rounded-lg bg-white/90 backdrop-blur-sm flex flex-col items-center justify-between py-2 ${
+            isCollapsed ? "rounded-full" : ""
+          }`}
+        >
+          {!isCollapsed &&
+            categories.map(({ id, icon: Icon, label, color }) => (
+              <Tooltip key={id}>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => setCategory(id as AssetGroup)}
+                    className={`w-6 h-6 rounded-full ${
+                      category === id ? `${color} text-white` : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                    size="icon"
+                  >
+                    <Icon className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>{label}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"
+                size="icon"
+              >
+                {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>{isCollapsed ? "Expand" : "Collapse"}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
+    </TooltipProvider>
       </div>
     </div>
   );
