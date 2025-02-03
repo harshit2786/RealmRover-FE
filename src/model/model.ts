@@ -20,6 +20,11 @@ export interface ElementReceived {
     frames?: number
 }
 
+export interface BlockedRecieved {
+    x : number,
+    y : number
+}
+
 export type AssetGroup = "building" | "nature" | "interior" | "animated"
 
 export interface StaticAsset {
@@ -34,5 +39,6 @@ export interface AnimatedAsset extends StaticAsset {
 
 export interface BlockedCoordinates {
     x : number,
-    y : number
+    y : number,
+    ref: Phaser.GameObjects.Image
 }

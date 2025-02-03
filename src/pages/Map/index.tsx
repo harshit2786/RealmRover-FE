@@ -14,7 +14,7 @@ import {
   TreesIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AssetGroup, BlockedCoordinates, ElementReceived, MapElement, Mode } from "@/model/model";
+import { AssetGroup, BlockedRecieved, ElementReceived, MapElement, Mode } from "@/model/model";
 import { AnimatedAssets, BuildingAssets, InteriorAssets, NatureAssets } from "@/lib/assetCollection";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -75,6 +75,16 @@ const preVVV: ElementReceived[] = [
     frames: 8,
   },
 ];
+const prevBlocked : BlockedRecieved[] = [
+  {
+    x : 5,
+    y : 5
+  },
+  {
+    x : 8,
+    y : 9
+  }
+]
 
 const Map: React.FC = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
@@ -83,7 +93,7 @@ const Map: React.FC = () => {
   const [category, setCategory] = useState<AssetGroup>("building");
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [elements, setElements] = useState<MapElement[]>([]);
-  const [blocked,setBlocked] = useState<BlockedCoordinates[]>([]);
+  const [blocked,setBlocked] = useState<BlockedRecieved[]>(prevBlocked);
   const categories = [
     { id: "building", icon: Building2, label: "Buildings", color: "bg-indigo-500" },
     { id: "interior", icon: Sofa, label: "House Interior", color: "bg-purple-500" },
@@ -91,7 +101,8 @@ const Map: React.FC = () => {
     { id: "animated", icon: Clapperboard, label: "Animated", color: "bg-indigo-500" },
   ]
   //   const [prevElements, setPrevElements] = useState<ElementReceived[]>(preVVV);
-  console.log(elements)
+  console.log(elements);
+  console.log(blocked)
   useEffect(() => {
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
@@ -158,9 +169,16 @@ const Map: React.FC = () => {
   useEffect(() => {
     if (sceneRef.current) {
       sceneRef.current.hidePanel(!isCollapsed);
-      console.log("ccc",category)
+      if(isCollapsed){
+      setMode("pan")
+      }
     }
   },[isCollapsed])
+  useEffect(() => {
+    if (sceneRef.current) {
+      sceneRef.current.setInternalBlocked(blocked)
+    }
+  },[blocked])
   return (
     <div className="w-full h-full relative">
       <div

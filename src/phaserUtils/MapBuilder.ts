@@ -1,4 +1,4 @@
-import { AnimatedAsset, AssetGroup, BlockedCoordinates, ElementReceived, MapElement, Mode, StaticAsset } from '@/model/model';
+import { AnimatedAsset, AssetGroup, BlockedCoordinates, BlockedRecieved, ElementReceived, MapElement, Mode, StaticAsset } from '@/model/model';
 import Phaser from 'phaser';
 
 export default class MapEditorScene extends Phaser.Scene {
@@ -9,9 +9,10 @@ export default class MapEditorScene extends Phaser.Scene {
     private selectedTabElements: Phaser.GameObjects.Image[] = []
     private buildingAssets: StaticAsset[]
     private interiorAssets: StaticAsset[]
+    private defaultBlocked : Phaser.GameObjects.Image[] = []
     private panel: Phaser.GameObjects.Rectangle | null = null
-    private blockedRefs: Phaser.GameObjects.Image[] = []
-    private blockedCoordinates: BlockedCoordinates[]
+    private blockedRefs: BlockedCoordinates[] = []
+    private blockedCoordinates: BlockedRecieved[]
     private natureAssets: StaticAsset[]
     private animatedAssets: AnimatedAsset[]
     private gridWidth: number // Fixed number of horizontal grids
@@ -21,14 +22,14 @@ export default class MapEditorScene extends Phaser.Scene {
     private mode: Mode
     private prev: ElementReceived[]
     private setElements: (e: MapElement[]) => void
-    private setBlocked: (e: BlockedCoordinates[]) => void
+    private setBlocked: (e: BlockedRecieved[]) => void
     private offset: number = 2;
     private dragStartX: number = 0;
     private dragStartY: number = 0;
     private panelHeight: number = this.offset * 100; // Height of the top panel
     private restrictedArea: number = 4;
 
-    constructor(config: { mode: Mode, setBlocked: (e: BlockedCoordinates[]) => void, setElements: (e: MapElement[]) => void, widthNum: number, heightNum: number, prev: ElementReceived[], blocked: BlockedCoordinates[], buildingAssets: StaticAsset[], interiorAssets: StaticAsset[], natureAssets: StaticAsset[], animatedAssets: AnimatedAsset[] }) {
+    constructor(config: { mode: Mode, setBlocked: (e: BlockedRecieved[]) => void, setElements: (e: MapElement[]) => void, widthNum: number, heightNum: number, prev: ElementReceived[], blocked: BlockedRecieved[], buildingAssets: StaticAsset[], interiorAssets: StaticAsset[], natureAssets: StaticAsset[], animatedAssets: AnimatedAsset[] }) {
         super({ key: 'MapEditorScene' });
         this.mode = config.mode
         this.setElements = config.setElements
@@ -81,6 +82,37 @@ export default class MapEditorScene extends Phaser.Scene {
     public updateMode(e: Mode) {
         this.selectedElement = null
         this.mode = e
+        this.blockedRefs.forEach((a) => {
+            a.ref.destroy();
+        })
+        this.defaultBlocked.forEach((a) => {
+            a.destroy()
+        });
+        this.defaultBlocked = [];
+        this.blockedRefs = [];
+        if (e === "pan") {
+            this.input.setDefaultCursor("grab");  // Set hand cursor
+        } else {
+            this.input.setDefaultCursor("pointer"); // Reset to normal cursor
+        }
+        if (this.mode === "block") {
+            for(let i =0 ; i< this.gridWidth ; i++ ){
+                for(let j=0 ; j < this.gridHeight ; j++){
+                    if(i<this.restrictedArea || j < this.restrictedArea || i >= this.gridWidth - this.restrictedArea || j >= this.gridHeight - this.restrictedArea  ){
+                        const X = i * this.gridSize;
+                        const Y = j * this.gridSize + this.panelHeight;
+                        const blockedRef = this.add.image(X, Y, 'blocked').setOrigin(0, 0);
+                        this.defaultBlocked.push(blockedRef);
+                    }
+                }
+            }
+            this.blockedCoordinates.forEach((a) => {
+                const X = a.x * this.gridSize;
+                const Y = a.y * this.gridSize + this.panelHeight;
+                const blockedRef = this.add.image(X, Y, 'blocked').setOrigin(0, 0)
+                this.blockedRefs.push({ x: a.x, y: a.y, ref: blockedRef })
+            })
+        }
     }
 
     private updateEveryElement() {
@@ -120,15 +152,15 @@ export default class MapEditorScene extends Phaser.Scene {
         this.panel = panel;
     }
 
-    public hidePanel(e : boolean) {
-        if(e){
-            if(this.panel){
+    public hidePanel(e: boolean) {
+        if (e) {
+            if (this.panel) {
                 this.panel.destroy();
             }
             this.drawPanel()
             this.addPanelElements(this.selectedTab)
         } else {
-            if(this.panel){
+            if (this.panel) {
                 this.panel.destroy()
             }
             this.selectedTabElements.forEach((a) => {
@@ -137,7 +169,6 @@ export default class MapEditorScene extends Phaser.Scene {
             this.selectedTabElements = []
         }
     }
-
     public addPanelElements(e: AssetGroup) {
         this.selectedTab = e;
         this.selectedTabElements.forEach((a) => {
@@ -304,13 +335,14 @@ export default class MapEditorScene extends Phaser.Scene {
         }
     }
 
+    public setInternalBlocked(e : BlockedRecieved[]) {
+        this.blockedCoordinates = e;
+    }
 
     private setupMapPanning() {
         // Enable map dragging (panning)
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-
             if (this.mode === "picker" && this.selectedElement) {
-                console.log("down", this.selectedElement)
                 this.addElementsToMap(pointer, this.selectedElement)
             } else if (!this.selectedElement && pointer.y > this.panelHeight) {
                 const X = pointer.x + this.cameras.main.scrollX;
@@ -341,11 +373,22 @@ export default class MapEditorScene extends Phaser.Scene {
                         this.setElements(this.mapElements)
                         deleteElement[deleteElement.length - 1].ref.destroy();
                     }
-                } else {
+                } else if(this.mode === "block") {
                     const XCord = Math.floor(X / this.gridSize);
                     const YCord = Math.floor((Y - this.panelHeight) / this.gridSize);
-                    if(XCord >= this.restrictedArea && XCord < this.gridWidth - this.restrictedArea && YCord >= this.restrictedArea && YCord < this.gridHeight - this.restrictedArea ){
-                        console.log('')
+                    if (XCord >= this.restrictedArea && XCord < this.gridWidth - this.restrictedArea && YCord >= this.restrictedArea && YCord < this.gridHeight - this.restrictedArea) {
+                        const exists = this.blockedRefs.find((a) => a.x === XCord && a.y === YCord);
+                        if (exists) {
+                            this.setBlocked(this.blockedCoordinates.filter((a) => !(a.x === XCord && a.y === YCord)));
+                            exists.ref.destroy();
+                            this.blockedRefs = this.blockedRefs.filter((a) => !(a.x === XCord && a.y === YCord));
+                        } else {
+                            const X = XCord * this.gridSize;
+                            const Y = YCord * this.gridSize + this.panelHeight;
+                            this.setBlocked([...this.blockedCoordinates, { x: XCord, y: YCord }]);
+                            const newRef = this.add.image(X, Y, 'blocked').setOrigin(0, 0);
+                            this.blockedRefs.push({ x: XCord, y: YCord, ref: newRef });
+                        }
                     }
                 }
             }
