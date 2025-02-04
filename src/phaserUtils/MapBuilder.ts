@@ -27,7 +27,7 @@ export default class MapEditorScene extends Phaser.Scene {
     private dragStartX: number = 0;
     private dragStartY: number = 0;
     private panelHeight: number = this.offset * 100; // Height of the top panel
-    private restrictedArea: number = 4;
+    private restrictedArea: number = 1;
 
     constructor(config: { mode: Mode, setBlocked: (e: BlockedRecieved[]) => void, setElements: (e: MapElement[]) => void, widthNum: number, heightNum: number, prev: ElementReceived[], blocked: BlockedRecieved[], buildingAssets: StaticAsset[], interiorAssets: StaticAsset[], natureAssets: StaticAsset[], animatedAssets: AnimatedAsset[] }) {
         super({ key: 'MapEditorScene' });

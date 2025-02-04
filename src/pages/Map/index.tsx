@@ -19,71 +19,63 @@ import { AnimatedAssets, BuildingAssets, InteriorAssets, NatureAssets } from "@/
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const preVVV: ElementReceived[] = [
-  {
-    id: "lgrass",
-    x: 4,
-    y: 4,
-    order: 1738354021209,
-    h: 2,
-    w: 2,
-    animate: false,
-  },
-  {
-    id: "lgrass",
-    x: 6,
-    y: 4,
-    order: 1738354023812,
-    h: 2,
-    w: 2,
-    animate: false,
-  },
-  {
-    id: "vending",
-    x: 13,
-    y: 4,
-    order: 1738354026844,
-    h: 2,
-    w: 1,
-    animate: false,
-  },
-  {
-    id: "mat",
-    x: 18,
-    y: 5,
-    order: 1738354030511,
-    h: 1,
-    w: 2,
-    animate: false,
-  },
-  {
-    id: "floora",
-    x: 16,
-    y: 7,
-    order: 1738354036314,
-    h: 1,
-    w: 1,
-    animate: false,
-  },
-  {
-    id: "cat",
-    x: 16,
-    y: 7,
-    order: 1738354039977,
-    h: 1,
-    w: 1,
-    animate: true,
-    frames: 8,
-  },
+  // {
+  //   id: "lgrass",
+  //   x: 4,
+  //   y: 4,
+  //   order: 1738354021209,
+  //   h: 2,
+  //   w: 2,
+  //   animate: false,
+  // },
+  // {
+  //   id: "lgrass",
+  //   x: 6,
+  //   y: 4,
+  //   order: 1738354023812,
+  //   h: 2,
+  //   w: 2,
+  //   animate: false,
+  // },
+  // {
+  //   id: "vending",
+  //   x: 13,
+  //   y: 4,
+  //   order: 1738354026844,
+  //   h: 2,
+  //   w: 1,
+  //   animate: false,
+  // },
+  // {
+  //   id: "mat",
+  //   x: 18,
+  //   y: 5,
+  //   order: 1738354030511,
+  //   h: 1,
+  //   w: 2,
+  //   animate: false,
+  // },
+  // {
+  //   id: "floora",
+  //   x: 16,
+  //   y: 7,
+  //   order: 1738354036314,
+  //   h: 1,
+  //   w: 1,
+  //   animate: false,
+  // },
+  // {
+  //   id: "cat",
+  //   x: 16,
+  //   y: 7,
+  //   order: 1738354039977,
+  //   h: 1,
+  //   w: 1,
+  //   animate: true,
+  //   frames: 8,
+  // },
 ];
 const prevBlocked : BlockedRecieved[] = [
-  {
-    x : 5,
-    y : 5
-  },
-  {
-    x : 8,
-    y : 9
-  }
 ]
 
 const Map: React.FC = () => {
@@ -114,8 +106,8 @@ const Map: React.FC = () => {
         new MapEditorScene({
           mode,
           setElements,
-          heightNum: 20,
-          widthNum: 40,
+          heightNum: 4,
+          widthNum: 10,
           prev: preVVV,
           buildingAssets : BuildingAssets,
           interiorAssets : InteriorAssets,
@@ -222,6 +214,8 @@ const Map: React.FC = () => {
           </Button>
           <Button
             onClick={() => {
+              console.log("elements",elements.map((a) => ({x :a.x , y : a.y , id : a.id , h : a.h , w : a.w , order : a.order,animate : false}) ));
+              console.log("blocked",blocked)
               setMode("block");
             }}
             className={`w-6 h-6 rounded-full ${
