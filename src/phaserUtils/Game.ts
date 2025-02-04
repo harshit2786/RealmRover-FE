@@ -143,14 +143,17 @@ export default class GameScene extends Phaser.Scene {
       isMoving = true;
     }
   
-    if (this.cursors.up.isDown) {
-      this.player.y -= speed * this.game.loop.delta / 1000;
-      this.player.play('moveUp', true); // Play up animation
-      isMoving = true;
-    } else if (this.cursors.down.isDown) {
-      this.player.y += speed * this.game.loop.delta / 1000;
-      this.player.play('moveDown', true); // Play down animation
-      isMoving = true;
+    // Check vertical movement only if no horizontal movement
+    if (!isMoving) {
+      if (this.cursors.up.isDown) {
+        this.player.y -= speed * this.game.loop.delta / 1000;
+        this.player.play('moveUp', true); // Play up animation
+        isMoving = true;
+      } else if (this.cursors.down.isDown) {
+        this.player.y += speed * this.game.loop.delta / 1000;
+        this.player.play('moveDown', true); // Play down animation
+        isMoving = true;
+      }
     }
   
     // Freeze the sprite at the correct frame when the player stops moving
